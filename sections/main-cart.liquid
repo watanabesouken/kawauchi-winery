@@ -1,0 +1,329 @@
+{%- liquid
+  assign continue_shopping_page = routes.all_products_collection_url
+  if section.settings.continue_shopping_page != blank
+    assign continue_shopping_page = section.settings.continue_shopping_page
+  endif
+-%}
+
+<div class="central py-medium content" data-section-type="cart-template">
+  {% if section.settings.cart_show_title %}
+  <h1 data-cc-animate class="h2">{{ 'cart.general.title' | t }}</h1>
+  {% endif %}
+
+  {% if cart.item_count > 0 %}
+
+  <form action="{{ routes.cart_url }}" method="post" id="cartform" data-cc-animate>
+
+    <ul class="cart-list clearfix">
+
+      <li class="item cart-list-header">
+        <div class="col-image">{{ 'cart.general.product' | t }}</div>
+        <div class="col-notimage">
+            <div class="desc"></div>
+            <div class="item-price">{{ 'cart.general.price' | t }}</div>
+            <div class="quantity-and-remove">{{ 'cart.general.quantity' | t }}</div>
+            <div class="line-total">{{ 'cart.general.total' | t }}</div>
+        </div>
+      </li>
+
+      {% for item in cart.items %}
+
+      {% comment %}
+      Determining the handle of the collection that was last seen for the 'continue shopping' link.
+      {% endcomment %}
+
+      <li class="item clearfix">
+        <div class="col-image">
+          <a data-cc-animate-click class="image" href="{{ item.url }}">
+            {% render 'responsive-image', image: item.image %}
+          </a>
+        </div>
+        <div class="col-notimage">
+          <div class="desc">
+            {% if settings.show_preorder_label and item.product.template_suffix contains 'preorder' %}
+              <div class="feature-subheader feature-subheader--small">{{ 'products.product.preorder' | t }}</div>
+            {% endif %}
+
+            <div class="title">
+              <a data-cc-animate-click href="{{ item.url }}">
+                <span class="product-title">{{ item.product.title }}</span>
+                {% unless item.product.has_only_default_variant %}{{ item.variant.title }}{% endunless %}
+              </a>
+            </div>
+            {% comment %}
+            Line Item Properties
+            {% endcomment %}
+            {% if item.properties.size > 0 %}
+            <div class="line-items">
+              {% for p in item.properties %}
+                {% unless p.last == blank %}
+                  {{ p.first }}:
+                  {% if p.last contains '/uploads/' %}
+                    <a data-cc-animate-click href="{{ p.last }}">{{ p.last | split: '/' | last }}</a>
+                  {% else %}
+                    {{ p.last }}
+                  {% endif %}
+                  <br/>
+                {% endunless %}
+              {% endfor %}
+            </div>
+            {% endif %}
+
+
+            {% if item.selling_plan_allocation %}
+              <div class="subscription-description">
+                <p>{{ item.selling_plan_allocation.selling_plan.name }}</p>
+              </div>
+            {% endif %}
+
+            {% if section.settings.show_backorder_text == true %}
+              {% render 'backorder', variant: item.variant %}
+            {% endif %}
+          </div>
+
+          <div class="item-price">
+            {% if item.original_line_price > item.final_line_price %}
+              <div class="original-price theme-money">{%- render "price", price: item.original_price, disable_currency_code: true -%}</div>
+              <div class="theme-money">{%- render "price", price: item.final_price, disable_currency_code: true -%}</div>
+            {% else %}
+              <div class="theme-money">{%- render "price", price: item.final_price, disable_currency_code: true -%}</div>
+            {% endif %}
+
+            {% render 'unit-price', variant: item %}
+
+            {% if item.line_level_discount_allocations.size > 0 %}
+              <ul class="cart-discount-list">
+              {% for discount_allocation in item.line_level_discount_allocations %}
+                <li class="cart-discount">
+                  <div class="cart-discount__label">{{ discount_allocation.discount_application.title }}</div>
+                  <div class="cart-discount__amount">(-<span class="theme-money">{%- render "price", price: discount_allocation.amount, disable_currency_code: true -%}</span>)</div>
+                </li>
+              {% endfor %}
+              </ul>
+            {% endif %}
+          </div>
+
+          <div class="quantity-and-remove">
+            <div class="quantity border-radius-{{ settings.buttons_shape }}">
+              <a class="minus" href="{{ routes.cart_change_url }}?line={{ forloop.index }}&quantity={{ item.quantity | minus: 1 }}" aria-label="{{ 'cart.general.decrease' | t | escape }}"><span>&minus;</span></a>
+              <input class="select-on-focus" type="text" size="2" id="updates_{{ item.id }}" name="updates[]" value="{{ item.quantity }}" aria-label="{{ 'cart.general.quantity' | t | escape }}" />
+              <a class="plus" href="{{ routes.cart_change_url }}?line={{ forloop.index }}&quantity={{ item.quantity | plus: 1 }}" aria-label="{{ 'cart.general.increase' | t | escape }}"><span>&plus;</span></a>
+            </div>
+
+            <a class="remove" href="{{ routes.cart_change_url }}?line={{ forloop.index }}&quantity=0">{{ 'cart.general.remove' | t | escape }}</a>
+          </div>
+
+          <div class="line-total">
+            {% if item.original_line_price != item.final_line_price %}
+              <div class="original-price theme-money">{%- render "price", price: item.original_line_price, disable_currency_code: true -%}</div>
+              <div class="theme-money">{%- render "price", price: item.final_line_price, disable_currency_code: true -%}</div>
+            {% else %}
+              <div class="theme-money">{%- render "price", price: item.final_line_price, disable_currency_code: true -%}</div>
+            {% endif %}
+          </div>
+        </div>
+      </li>
+      {% endfor %}
+
+    </ul>
+
+    <div class="update-continue">
+<!--       <input class="update textbutton" type="submit" name="update" value="{{ 'cart.general.update' | t | escape }}" />
+      <span>|</span> -->
+      <a data-cc-animate-click class="continue" href="{{ continue_shopping_page }}">{{ 'cart.general.continue' | t }}</a>
+    </div>
+
+    <div class="under-cart">
+      <div class="subtotal-row">
+        {%- if cart.cart_level_discount_applications != blank -%}
+          <ul class="cart-discount-list align-right">
+            {%- for discount_application in cart.cart_level_discount_applications -%}
+              <li class="cart-discount cart-discount--inline">
+                <span class="cart-discount__label">{{ discount_application.title }}</span>
+                <span class="cart-discount__amount">-<span class="theme-money">{%- render "price", price: discount_application.total_allocated_amount, disable_currency_code: true -%}</span></span>
+              </li>
+            {%- endfor -%}
+          </ul>
+        {%- endif -%}
+
+        <div class="subtotal">
+          <span class="label">{{ 'cart.general.subtotal' | t }}</span>
+          <span class="amount theme-money">{%- render "price", price: cart.total_price, is_total_price: true -%}</span>
+        </div>
+      </div>
+    <div class="custom-cart-note">
+       <div class="note-area">
+        <p class="note-area__div">
+           <label for="note" class="feature-subheader">配送日時指定</label>
+          {% render 'delivery-date' %}
+        </p>
+            <p class="note-area__div">
+            <label for="time" class="feature-subheader">配送時間指定:</label>
+              <select name="attributes[配送時間]" required="required" value="お受けとりしたい日時をご選択ください">
+                <option value=""></option>
+                <option value="午前">午前</option>
+                <option value="14時-16時">14時-16時</option>
+                <option value="16時-18時">16時-18時</option>
+                <option value="18時-20時">18時-20時</option>
+                <option value="19時-21時">19時-21時</option>
+            　</select>
+        
+          </p>
+        <div class="u-flexContents">
+          <label for="note" class="feature-subheader">生年月日</label>
+           <div class="u-flex">
+                <div class="flex_items">
+                    <select name="attributes[誕生年]" id="check_age_confirmation_input__y" class="input_box" data-age_confirmation_select="" data-age_age_confirmation_input=""><option value="2023" selected="">2023</option><option value="2022">2022</option><option value="2021">2021</option><option value="2020">2020</option><option value="2019">2019</option><option value="2018">2018</option><option value="2017">2017</option><option value="2016">2016</option><option value="2015">2015</option><option value="2014">2014</option><option value="2013">2013</option><option value="2012">2012</option><option value="2011">2011</option><option value="2010">2010</option><option value="2009">2009</option><option value="2008">2008</option><option value="2007">2007</option><option value="2006">2006</option><option value="2005">2005</option><option value="2004">2004</option><option value="2003">2003</option><option value="2002">2002</option><option value="2001">2001</option><option value="2000">2000</option><option value="1999">1999</option><option value="1998">1998</option><option value="1997">1997</option><option value="1996">1996</option><option value="1995">1995</option><option value="1994">1994</option><option value="1993">1993</option><option value="1992">1992</option><option value="1991">1991</option><option value="1990">1990</option><option value="1989">1989</option><option value="1988">1988</option><option value="1987">1987</option><option value="1986">1986</option><option value="1985">1985</option><option value="1984">1984</option><option value="1983">1983</option><option value="1982">1982</option><option value="1981">1981</option><option value="1980">1980</option><option value="1979">1979</option><option value="1978">1978</option><option value="1977">1977</option><option value="1976">1976</option><option value="1975">1975</option><option value="1974">1974</option><option value="1973">1973</option><option value="1972">1972</option><option value="1971">1971</option><option value="1970">1970</option><option value="1969">1969</option><option value="1968">1968</option><option value="1967">1967</option><option value="1966">1966</option><option value="1965">1965</option><option value="1964">1964</option><option value="1963">1963</option><option value="1962">1962</option><option value="1961">1961</option><option value="1960">1960</option><option value="1959">1959</option><option value="1958">1958</option><option value="1957">1957</option><option value="1956">1956</option><option value="1955">1955</option><option value="1954">1954</option><option value="1953">1953</option><option value="1952">1952</option><option value="1951">1951</option><option value="1950">1950</option><option value="1949">1949</option><option value="1948">1948</option><option value="1947">1947</option><option value="1946">1946</option><option value="1945">1945</option><option value="1944">1944</option><option value="1943">1943</option><option value="1942">1942</option><option value="1941">1941</option><option value="1940">1940</option><option value="1939">1939</option><option value="1938">1938</option><option value="1937">1937</option><option value="1936">1936</option><option value="1935">1935</option><option value="1934">1934</option><option value="1933">1933</option><option value="1932">1932</option><option value="1931">1931</option><option value="1930">1930</option><option value="1929">1929</option><option value="1928">1928</option><option value="1927">1927</option><option value="1926">1926</option><option value="1925">1925</option><option value="1924">1924</option><option value="1923">1923</option><option value="1922">1922</option></select>年
+                </div>
+                <div class="flex_items">
+                    <select name="attributes[誕生月]" id="check_age_confirmation_input__m" class="input_box" data-age_confirmation_select="" data-age_age_confirmation_input="">
+                        <option value="01">01</option>
+                        <option value="02">02</option>
+                        <option value="03">03</option>
+                        <option value="04">04</option>
+                        <option value="05">05</option>
+                        <option value="06">06</option>
+                        <option value="07">07</option>
+                        <option value="08">08</option>
+                        <option value="09">09</option>
+                        <option value="10">10</option>
+                        <option value="11">11</option>
+                        <option value="12">12</option>
+                    </select>月
+                </div>
+                <div class="flex_items">
+                    <select name="attributes[誕生日]" id="check_age_confirmation_input__d" class="input_box" data-age_age_confirmation_input=""><option value="01" selected="">01</option><option value="02">02</option><option value="03">03</option><option value="04">04</option><option value="05">05</option><option value="06">06</option><option value="07">07</option><option value="08">08</option><option value="09">09</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option></select>日
+                </div>
+                <div class="flex_items">
+                    <input type="text" name="attributes[年齢]" placeholder="0" required="required">歳
+                </div>
+            </div>
+         </div>
+      </div>
+    
+        <div class="note-area__div product__terms-conditions">
+                                <input type="checkbox" id="terms-conditions-cart" value="" required>
+                                <label class="title" for="terms-conditions-cart" data-terms-conditions="">
+    20歳以上です (20歳未満の者の飲酒は法律で禁止されています) 
+                                </label>
+      </div>
+          {% if section.settings.cart_note_show %}
+      <p class="note-area custom-note">
+        <label for="note" class="feature-subheader">注文メモ</label>
+        <textarea id="note" name="note" placeholder="注文にあたり、何かご不明点やお伝えしたいことなどありましたらお気軽におっしゃってください。">{{ cart.note }}</textarea>
+      </p>
+      {% endif %}
+    
+    </div>
+      {% if section.settings.cart_terms_show %}
+      <p class="terms rte">
+        <input type="checkbox" id="terms" />
+        {% assign terms_url = section.settings.cart_terms_page %}
+        {% capture terms_label_html %}<label for="terms">{{ 'cart.terms.agreement_html' | t: terms_url: terms_url }}</label>{% endcapture %}
+        {% if section.settings.cart_terms_page == blank %}
+        {{ terms_label_html | replace: '<a ', '<span ' | replace: '</a>', '</span>' }}
+        {% else %}
+        {{ terms_label_html }}
+        {% endif %}
+      </p>
+      {% endif %}
+
+      {% if section.settings.show_tax_and_shipping %}
+        {%- capture taxes_shipping_checkout -%}
+          {%- if cart.taxes_included and shop.shipping_policy.body != blank -%}
+            {{ 'cart.general.taxes_included_and_shipping_policy_html' | t: link: shop.shipping_policy.url }}
+          {%- elsif cart.taxes_included -%}
+            {{ 'cart.general.taxes_included_but_shipping_at_checkout' | t }}
+          {%- elsif shop.shipping_policy.body != blank -%}
+            {{ 'cart.general.taxes_and_shipping_policy_at_checkout_html' | t: link: shop.shipping_policy.url }}
+          {%- else -%}
+            {{ 'cart.general.taxes_and_shipping_at_checkout' | t }}
+          {%- endif -%}
+        {%- endcapture -%}
+
+        <div class="cart-policies rte">{{ taxes_shipping_checkout }}</div>
+      {% endif %}
+
+      <input type="submit" class="checkout-btn" name="checkout" value="{{ 'cart.general.checkout' | t | escape }}" />
+
+      {% comment %}Paypal and Google checkout buttons{% endcomment %}
+      {% if section.settings.show_additional_checkout_buttons and additional_checkout_buttons and section.settings.cart_terms_show == false %}
+      <div class="additional-checkout-buttons">
+        {{ content_for_additional_checkout_buttons }}
+      </div>
+      {% endif %}
+    </div>
+
+  </form>
+
+  {% else %}
+
+  <div>
+    <div class="rte" data-cc-animate data-cc-animate-delay="0.4s">
+      <p data-cc-animate data-cc-animate-delay="0.2s" class="align-center">
+        {{ 'cart.general.empty' | t }}
+      </p>
+      <p class="align-center"><a data-cc-animate-click href="{{ continue_shopping_page }}">{{ 'cart.general.continue_browsing' | t }}</a></p>
+    </div>
+  </div>
+
+  {% endif %}
+</div>
+
+
+{% schema %}
+  {
+    "name": "Cart page",
+    "settings": [
+      {
+        "type": "checkbox",
+        "id": "cart_show_title",
+        "label": "Show page title",
+        "default": true
+      },
+      {
+        "type": "checkbox",
+        "id": "cart_terms_show",
+        "label": "Show Terms and Conditions checkbox",
+        "info": "Additional checkout buttons will be hidden",
+        "default": false
+      },
+      {
+        "type": "url",
+        "id": "cart_terms_page",
+        "label": "Page for 'Terms and Conditions' link"
+      },
+      {
+        "type": "url",
+        "id": "continue_shopping_page",
+        "label": "Page for 'Continue shopping' link"
+      },
+      {
+        "type": "checkbox",
+        "id": "cart_note_show",
+        "label": "Enable order notes",
+        "default": true
+      },
+      {
+        "type": "checkbox",
+        "id": "show_tax_and_shipping",
+        "label": "Show tax and shipping information",
+        "default": true
+      },
+      {
+        "type": "checkbox",
+        "id": "show_additional_checkout_buttons",
+        "label": "Show additional checkout options",
+        "default": true,
+        "info": "Display other gateways and quick checkout buttons. [Read more](https://help.shopify.com/en/manual/payments/accelerated-checkouts)"
+      },
+      {
+        "type": "checkbox",
+        "id": "show_backorder_text",
+        "label": "Show backorder text",
+        "default": true,
+        "info": "Only shows for products which use Shopify inventory tracking and are available to purchase when out of stock."
+      }
+    ]
+  }
+{% endschema %}

@@ -1,0 +1,13 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/themes/base/jquery-ui.min.css">
+ 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1/i18n/jquery.ui.datepicker-ja.min.js"></script>
+<input type="textarea" id="datepicker" name="attributes[配送日]" placeholder="お受けとりしたい日付をご選択ください" required="required">
+
+ <script>
+  $('#datepicker').datepicker({
+         minDate: +3, 
+         maxDate: '+2M'
+  }
+  );
+ </script>
